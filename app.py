@@ -20,14 +20,17 @@ except ImportError:
 
 load_dotenv()
 
-# Fix 1: Properly load the API key
+# Fix 1: Properly load the API key with better error handling
 google_api_key = os.getenv("GOOGLE_API_KEY")
 
 if not google_api_key:
-    raise ValueError("GOOGLE_API_KEY is missing! Please set it in Railway variables.")
-
-# Fix 2: Set the API key as environment variable for langchain
-os.environ["GOOGLE_API_KEY"] = google_api_key
+    print("⚠️ WARNING: GOOGLE_API_KEY is missing! Please set it in Railway variables.")
+    print("⚠️ The app will start but chatbot functionality will be limited.")
+    google_api_key = None
+else:
+    print(f"✅ GOOGLE_API_KEY loaded successfully (length: {len(google_api_key)})")
+    # Fix 2: Set the API key as environment variable for langchain
+    os.environ["GOOGLE_API_KEY"] = google_api_key
 
 class VideoSearcher:
     """Handles video search functionality"""
@@ -375,6 +378,17 @@ class PersistentChatbot:
     """Enhanced chatbot with permanent conversation storage and video search"""
     
     def __init__(self):
+        # Check if API key is available
+        if not google_api_key:
+            print("❌ Cannot initialize chatbot: Google API key is missing")
+            self.model = None
+            self.genai_model = None
+            self.use_direct_genai = False
+            self.storage = ConversationStorage("ethicallogix_conversations.json")
+            self.video_searcher = VideoSearcher()
+            self.conversation_context = []
+            return
+        
         # Fix 3: Multiple approaches to initialize the model
         self.model = None
         
@@ -412,10 +426,12 @@ class PersistentChatbot:
                     print("✅ Successfully initialized with direct google-generativeai")
                 except Exception as e3:
                     print(f"❌ All initialization methods failed. Last error: {e3}")
-                    raise Exception(f"Could not initialize any model. Errors: {e}, {e2}, {e3}")
+                    print("❌ Chatbot will run in limited mode without AI responses")
+                    self.model = None
+                    self.genai_model = None
         
         # Set flag for which method we're using
-        self.use_direct_genai = False if self.model else True
+        self.use_direct_genai = False if self.model else (True if hasattr(self, 'genai_model') and self.genai_model else False)
         
         self.storage = ConversationStorage("ethicallogix_conversations.json")
         self.video_searcher = VideoSearcher()
@@ -504,6 +520,10 @@ class PersistentChatbot:
     def chat(self, user_text: str) -> str:
         """Process user input and generate response with context and video search"""
         try:
+            # Check if AI model is available
+            if not self.model and not (hasattr(self, 'genai_model') and self.genai_model):
+                return "Sorry, I'm currently unavailable because the Google API key is not configured. Please contact the administrator to set up the GOOGLE_API_KEY environment variable."
+            
             # Check if user is requesting videos
             if self.detect_video_request(user_text):
                 print(f"🎥 Video request detected: {user_text}")
@@ -517,37 +537,44 @@ class PersistentChatbot:
                     videos = self.video_searcher.search_general_videos(search_query)
                     video_results = self.video_searcher.format_video_results(videos)
                     
-                    # Generate AI response with video results
-                    context = self.get_context_messages()
-                    prompt_with_context = f"{context}Human: {user_text}\n\nEthicallogix (with video search results):\n{video_results}\n\nAdditional response:"
-                    
-                    # Use appropriate model method
-                    if self.use_direct_genai:
-                        response = self.genai_model.generate_content(
-                            f'you are a ethicallogix AI assistant named Hasi made by Ethicallogix. The user asked for videos and here are the search results. Provide a helpful response that includes these video links and additional context. {prompt_with_context}'
-                        )
-                        ai_response = response.text
+                    # Generate AI response with video results if AI is available
+                    if self.model or (hasattr(self, 'genai_model') and self.genai_model):
+                        context = self.get_context_messages()
+                        prompt_with_context = f"{context}Human: {user_text}\n\nEthicallogix (with video search results):\n{video_results}\n\nAdditional response:"
+                        
+                        # Use appropriate model method
+                        if self.use_direct_genai and hasattr(self, 'genai_model'):
+                            response = self.genai_model.generate_content(
+                                f'you are a ethicallogix AI assistant named Hasi made by Ethicallogix. The user asked for videos and here are the search results. Provide a helpful response that includes these video links and additional context. {prompt_with_context}'
+                            )
+                            ai_response = response.text
+                        else:
+                            response = self.model.invoke(f'you are a ethicallogix AI assistant named Hasi made by Ethicallogix. The user asked for videos and here are the search results. Provide a helpful response that includes these video links and additional context. {prompt_with_context}')
+                            ai_response = response.content
+                        
+                        # Combine video results with AI response
+                        full_response = f"{video_results}\n\n{ai_response}"
                     else:
-                        response = self.model.invoke(f'you are a ethicallogix AI assistant named Hasi made by Ethicallogix. The user asked for videos and here are the search results. Provide a helpful response that includes these video links and additional context. {prompt_with_context}')
-                        ai_response = response.content
-                    
-                    # Combine video results with AI response
-                    full_response = f"{video_results}\n\n{ai_response}"
+                        # Just return video results without AI commentary
+                        full_response = video_results
                 else:
                     # If no clear search query, ask for clarification
                     full_response = "I'd be happy to help you find videos! Could you please specify what topic or subject you'd like to see videos about?"
             else:
                 # Regular chat without video search
-                context = self.get_context_messages()
-                prompt_with_context = context + f"Human: {user_text}\n\nEthicallogix:"
-                
-                # Use appropriate model method
-                if self.use_direct_genai:
-                    response = self.genai_model.generate_content(f'you are a ethicallogix AI assistant named Hasi made by Ethicallogix {prompt_with_context}')
-                    full_response = response.text
+                if not self.model and not (hasattr(self, 'genai_model') and self.genai_model):
+                    full_response = "I'm sorry, but I can't provide AI responses right now because my API key is not configured. However, I can still help you search for videos if you ask!"
                 else:
-                    response = self.model.invoke(f'you are a ethicallogix AI assistant named Hasi made by Ethicallogix {prompt_with_context}')
-                    full_response = response.content
+                    context = self.get_context_messages()
+                    prompt_with_context = context + f"Human: {user_text}\n\nEthicallogix:"
+                    
+                    # Use appropriate model method
+                    if self.use_direct_genai and hasattr(self, 'genai_model'):
+                        response = self.genai_model.generate_content(f'you are a ethicallogix AI assistant named Hasi made by Ethicallogix {prompt_with_context}')
+                        full_response = response.text
+                    else:
+                        response = self.model.invoke(f'you are a ethicallogix AI assistant named Hasi made by Ethicallogix {prompt_with_context}')
+                        full_response = response.content
             
             # Clean the response text
             full_response = self.clean_response_text(full_response)
@@ -563,6 +590,7 @@ class PersistentChatbot:
             
         except Exception as e:
             error_msg = f"Sorry, I encountered an error: {e}"
+            print(f"Chat error: {e}")
             self.storage.add_message("human", user_text)
             self.storage.add_message("ai", error_msg)
             return error_msg
@@ -607,12 +635,18 @@ def initialize_chatbot():
         print("✅ Chatbot initialized successfully")
         return True
     except Exception as e:
-        print(f"❌ Failed to initialize chatbot: {e}")
-        return False
+        print(f"⚠️ Chatbot initialization had issues: {e}")
+        print("⚠️ App will continue in limited mode")
+        # Still create a basic chatbot instance for video search
+        try:
+            chatbot = PersistentChatbot()
+            return True
+        except Exception as e2:
+            print(f"❌ Complete chatbot initialization failed: {e2}")
+            return False
 
-# Try to initialize chatbot at startup
-if not initialize_chatbot():
-    print("⚠️ Chatbot initialization failed, but server will start. Check your GOOGLE_API_KEY!")
+# Try to initialize chatbot at startup - don't fail if it doesn't work
+initialize_chatbot()
 
 @app.route('/')
 def index():
