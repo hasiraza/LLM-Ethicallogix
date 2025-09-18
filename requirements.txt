@@ -1,7 +1,8 @@
-Flask
-gunicorn
+flask
 python-dotenv
-requests
-beautifulsoup4
 langchain
 langchain-google-genai
+google-generativeai
+requests
+beautifulsoup4
+gunicorn
