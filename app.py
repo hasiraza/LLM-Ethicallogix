@@ -19,7 +19,7 @@ except ImportError:
     BS4_AVAILABLE = False
 
 load_dotenv()
-google_api_key = os.getenv("GOOGLE_API_KEY")
+google_api_key = "AIzaSyAlIc_yWjG1ZRssmnwD_OZwF2zfi65wDSU"
 
 if not google_api_key:
     raise ValueError("GOOGLE_API_KEY is missing! Please set it in Railway variables.")
