@@ -19,10 +19,15 @@ except ImportError:
     BS4_AVAILABLE = False
 
 load_dotenv()
-google_api_key = "AIzaSyAlIc_yWjG1ZRssmnwD_OZwF2zfi65wDSU"
+
+# Fix 1: Properly load the API key
+google_api_key = os.getenv("GOOGLE_API_KEY")
 
 if not google_api_key:
     raise ValueError("GOOGLE_API_KEY is missing! Please set it in Railway variables.")
+
+# Fix 2: Set the API key as environment variable for langchain
+os.environ["GOOGLE_API_KEY"] = google_api_key
 
 class VideoSearcher:
     """Handles video search functionality"""
@@ -370,7 +375,48 @@ class PersistentChatbot:
     """Enhanced chatbot with permanent conversation storage and video search"""
     
     def __init__(self):
-        self.model = init_chat_model("gemini-2.0-flash-exp", model_provider="google_genai")
+        # Fix 3: Multiple approaches to initialize the model
+        self.model = None
+        
+        # Approach 1: Try with langchain init_chat_model
+        try:
+            self.model = init_chat_model(
+                "gemini-1.5-pro",  # Start with more stable model
+                model_provider="google_genai",
+                google_api_key=google_api_key,
+                temperature=0.7
+            )
+            print("✅ Successfully initialized with langchain init_chat_model")
+        except Exception as e:
+            print(f"⚠️ Langchain approach failed: {e}")
+            
+            # Approach 2: Try direct import and initialization
+            try:
+                from langchain_google_genai import ChatGoogleGenerativeAI
+                self.model = ChatGoogleGenerativeAI(
+                    model="gemini-1.5-pro",
+                    google_api_key=google_api_key,
+                    temperature=0.7,
+                    convert_system_message_to_human=True
+                )
+                print("✅ Successfully initialized with direct ChatGoogleGenerativeAI")
+            except Exception as e2:
+                print(f"⚠️ Direct approach failed: {e2}")
+                
+                # Approach 3: Try with google-generativeai directly
+                try:
+                    import google.generativeai as genai
+                    genai.configure(api_key=google_api_key)
+                    self.genai_model = genai.GenerativeModel('gemini-1.5-pro')
+                    self.use_direct_genai = True
+                    print("✅ Successfully initialized with direct google-generativeai")
+                except Exception as e3:
+                    print(f"❌ All initialization methods failed. Last error: {e3}")
+                    raise Exception(f"Could not initialize any model. Errors: {e}, {e2}, {e3}")
+        
+        # Set flag for which method we're using
+        self.use_direct_genai = False if self.model else True
+        
         self.storage = ConversationStorage("ethicallogix_conversations.json")
         self.video_searcher = VideoSearcher()
         
@@ -475,8 +521,15 @@ class PersistentChatbot:
                     context = self.get_context_messages()
                     prompt_with_context = f"{context}Human: {user_text}\n\nEthicallogix (with video search results):\n{video_results}\n\nAdditional response:"
                     
-                    response = self.model.invoke(f'you are a ethicallogix AI assistant named Hasi made by Ethicallogix. The user asked for videos and here are the search results. Provide a helpful response that includes these video links and additional context. {prompt_with_context}')
-                    ai_response = response.content
+                    # Use appropriate model method
+                    if self.use_direct_genai:
+                        response = self.genai_model.generate_content(
+                            f'you are a ethicallogix AI assistant named Hasi made by Ethicallogix. The user asked for videos and here are the search results. Provide a helpful response that includes these video links and additional context. {prompt_with_context}'
+                        )
+                        ai_response = response.text
+                    else:
+                        response = self.model.invoke(f'you are a ethicallogix AI assistant named Hasi made by Ethicallogix. The user asked for videos and here are the search results. Provide a helpful response that includes these video links and additional context. {prompt_with_context}')
+                        ai_response = response.content
                     
                     # Combine video results with AI response
                     full_response = f"{video_results}\n\n{ai_response}"
@@ -488,8 +541,13 @@ class PersistentChatbot:
                 context = self.get_context_messages()
                 prompt_with_context = context + f"Human: {user_text}\n\nEthicallogix:"
                 
-                response = self.model.invoke(f'you are a ethicallogix AI assistant named Hasi made by Ethicallogix {prompt_with_context}')
-                full_response = response.content
+                # Use appropriate model method
+                if self.use_direct_genai:
+                    response = self.genai_model.generate_content(f'you are a ethicallogix AI assistant named Hasi made by Ethicallogix {prompt_with_context}')
+                    full_response = response.text
+                else:
+                    response = self.model.invoke(f'you are a ethicallogix AI assistant named Hasi made by Ethicallogix {prompt_with_context}')
+                    full_response = response.content
             
             # Clean the response text
             full_response = self.clean_response_text(full_response)
@@ -538,8 +596,23 @@ class PersistentChatbot:
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
-# Initialize chatbot
-chatbot = PersistentChatbot()
+# Fix 4: Initialize chatbot with proper error handling
+chatbot = None
+
+def initialize_chatbot():
+    """Initialize chatbot with error handling"""
+    global chatbot
+    try:
+        chatbot = PersistentChatbot()
+        print("✅ Chatbot initialized successfully")
+        return True
+    except Exception as e:
+        print(f"❌ Failed to initialize chatbot: {e}")
+        return False
+
+# Try to initialize chatbot at startup
+if not initialize_chatbot():
+    print("⚠️ Chatbot initialization failed, but server will start. Check your GOOGLE_API_KEY!")
 
 @app.route('/')
 def index():
@@ -554,6 +627,11 @@ def index():
 def api_chat():
     """API endpoint for chat messages"""
     try:
+        # Check if chatbot is initialized
+        if chatbot is None:
+            if not initialize_chatbot():
+                return jsonify({'error': 'Chatbot service is currently unavailable. Please check your Google API key configuration.'}), 503
+        
         data = request.get_json()
         user_message = data.get('message', '').strip()
         
@@ -569,12 +647,15 @@ def api_chat():
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': f'Chat service error: {str(e)}'}), 500
 
 @app.route('/api/search-videos', methods=['POST'])
 def api_search_videos():
     """Direct API endpoint for video search"""
     try:
+        if chatbot is None:
+            return jsonify({'error': 'Video search service is currently unavailable'}), 503
+            
         data = request.get_json()
         query = data.get('query', '').strip()
         
@@ -596,6 +677,9 @@ def api_search_videos():
 def api_history():
     """Get chat history"""
     try:
+        if chatbot is None:
+            return jsonify({'error': 'Chat history service unavailable'}), 503
+            
         history = chatbot.get_chat_history()
         return jsonify({'history': history})
     except Exception as e:
@@ -605,6 +689,9 @@ def api_history():
 def api_sessions():
     """Get all sessions for sidebar"""
     try:
+        if chatbot is None:
+            return jsonify({'error': 'Session service unavailable'}), 503
+            
         sessions = chatbot.get_session_list()
         return jsonify({'sessions': sessions})
     except Exception as e:
@@ -614,6 +701,9 @@ def api_sessions():
 def api_load_session():
     """Load a specific session"""
     try:
+        if chatbot is None:
+            return jsonify({'error': 'Session service unavailable'}), 503
+            
         data = request.get_json()
         session_id = data.get('session_id')
         
@@ -638,6 +728,9 @@ def api_load_session():
 def api_new_session():
     """Start new chat session"""
     try:
+        if chatbot is None:
+            return jsonify({'error': 'Session service unavailable'}), 503
+            
         chatbot.new_session()
         return jsonify({'success': True, 'message': 'New session started'})
     except Exception as e:
@@ -647,9 +740,55 @@ def api_new_session():
 def api_all_conversations():
     """Get all conversation history"""
     try:
+        if chatbot is None:
+            return jsonify({'error': 'Conversation service unavailable'}), 503
+            
         return jsonify(chatbot.storage.data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/health')
+def health_check():
+    """Health check endpoint"""
+    status = {
+        'status': 'healthy' if chatbot is not None else 'degraded',
+        'chatbot_ready': chatbot is not None,
+        'google_api_configured': bool(google_api_key),
+        'api_key_length': len(google_api_key) if google_api_key else 0,
+        'bs4_available': BS4_AVAILABLE,
+        'environment_check': {
+            'GOOGLE_API_KEY_in_env': 'GOOGLE_API_KEY' in os.environ,
+            'dotenv_loaded': os.path.exists('.env')
+        }
+    }
+    
+    return jsonify(status), 200 if chatbot is not None else 503
+
+@app.route('/debug')
+def debug_info():
+    """Debug endpoint - remove in production"""
+    if not app.debug:  # Only show in debug mode
+        return jsonify({'error': 'Debug info only available in debug mode'}), 403
+    
+    debug_info = {
+        'environment_variables': {
+            'GOOGLE_API_KEY_set': bool(os.getenv('GOOGLE_API_KEY')),
+            'GOOGLE_API_KEY_length': len(os.getenv('GOOGLE_API_KEY', '')),
+            'PORT': os.getenv('PORT', 'not set'),
+            'total_env_vars': len(os.environ)
+        },
+        'file_system': {
+            'current_directory': os.getcwd(),
+            'env_file_exists': os.path.exists('.env'),
+            'conversation_file_exists': os.path.exists('ethicallogix_conversations.json')
+        },
+        'python_info': {
+            'python_version': os.sys.version,
+            'working_directory': os.getcwd()
+        }
+    }
+    
+    return jsonify(debug_info)
 
 if __name__ == '__main__':
     import os
