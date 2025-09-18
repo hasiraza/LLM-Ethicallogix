@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ethicallogix.ai - AI Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #fafafa;
+            height: 100vh;
+            overflow: hidden;
+            color: #1a1a1a;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            max-width: 100%;
+            background: white;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: #ffffff;
+            border-right: 1px solid #e8e8e8;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid #e8e8e8;
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a1a1a;
+            letter-spacing: -0.02em;
+        }
+
+        .new-chat-btn {
+            width: 100%;
+            padding: 12px 16px;
+            background: #1a1a1a;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            margin-top: 16px;
+        }
+
+        .new-chat-btn:hover {
+            background: #333333;
+        }
+
+        .chat-history {
+            flex: 1;
+            padding: 16px 0;
+            overflow-y: auto;
+        }
+
+        .history-section {
+            margin-bottom: 24px;
+        }
+
+        .history-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #666666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0 24px;
+        }
+
+        .history-item {
+            padding: 12px 24px;
+            cursor: pointer;
+            margin-bottom: 2px;
+            color: #666666;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            border-left: 3px solid transparent;
+            position: relative;
+        }
+
+        .history-item:hover {
+            background: #f8f8f8;
+            color: #1a1a1a;
+        }
+
+        .history-item.current {
+            background: #f0f7ff;
+            color: #1a1a1a;
+            border-left-color: #007acc;
+        }
+
+        .history-item .session-time {
+            font-size: 12px;
+            color: #999999;
+            margin-top: 2px;
+        }
+
+        .empty-history {
+            padding: 24px;
+            text-align: center;
+            color: #999999;
+            font-size: 14px;
+        }
+
+        .features-section {
+            margin-top: 24px;
+            padding: 0 24px;
+        }
+
+        .features-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #666666;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .feature-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .feature-item:last-child {
+            border-bottom: none;
+        }
+
+        .feature-item .feature-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+        }
+
+        .feature-item .feature-desc {
+            font-size: 12px;
+            color: #666666;
+            line-height: 1.4;
+        }
+
+        .sidebar-footer {
+            padding: 24px;
+            border-top: 1px solid #e8e8e8;
+            font-size: 13px;
+            color: #999999;
+        }
+
+        /* Main Chat Area */
+        .main-chat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #ffffff;
+        }
+
+        .chat-header {
+            padding: 24px 32px;
+            border-bottom: 1px solid #e8e8e8;
+            background: #ffffff;
+        }
+
+        .chat-header h2 {
+            font-size: 16px;
+            font-weight: 500;
+            color: #1a1a1a;
+            letter-spacing: -0.01em;
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+            background: #fafafa;
+        }
+
+        .message {
+            padding: 32px;
+            display: flex;
+            gap: 16px;
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .user-message {
+            background: transparent;
+        }
+
+        .ai-message {
+            background: #ffffff;
+            border-top: 1px solid #e8e8e8;
+            border-bottom: 1px solid #e8e8e8;
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .user-avatar {
+            background: #1a1a1a;
+            color: white;
+        }
+
+        .ai-avatar {
+            background: #f0f0f0;
+            color: #666666;
+        }
+
+        .message-content {
+            flex: 1;
+            line-height: 1.7;
+            color: #1a1a1a;
+            font-size: 15px;
+            position: relative;
+        }
+
+        .message-text {
+            margin-bottom: 8px;
+        }
+
+        /* Enhanced text formatting */
+        .message-content p {
+            margin-bottom: 16px;
+            line-height: 1.6;
+        }
+
+        .message-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .message-content ul, .message-content ol {
+            margin: 16px 0;
+            padding-left: 24px;
+        }
+
+        .message-content li {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .message-content blockquote {
+            border-left: 4px solid #e8e8e8;
+            padding-left: 16px;
+            margin: 16px 0;
+            color: #666666;
+            font-style: italic;
+        }
+
+        .message-content code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+        }
+
+        .message-content pre {
+            background: #f8f8f8;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 16px 0;
+            border: 1px solid #e8e8e8;
+        }
+
+        .message-content pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .message-content strong {
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .message-content em {
+            font-style: italic;
+            color: #333333;
+        }
+
+        .message-content h1, .message-content h2, .message-content h3 {
+            margin: 20px 0 12px 0;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .message-content h1 {
+            font-size: 24px;
+        }
+
+        .message-content h2 {
+            font-size: 20px;
+        }
+
+        .message-content h3 {
+            font-size: 18px;
+        }
+
+        .message-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .message:hover .message-actions {
+            opacity: 1;
+        }
+
+        .action-btn {
+            background: none;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 12px;
+            color: #666666;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .action-btn:hover {
+            background: #f8f8f8;
+            color: #1a1a1a;
+            border-color: #cccccc;
+        }
+
+        .action-btn.copied {
+            background: #e8f5e8;
+            color: #2d5a2d;
+            border-color: #c3e6c3;
+        }
+
+        .copy-icon {
+            width: 12px;
+            height: 12px;
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: #999999;
+            margin-top: 8px;
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 24px 32px;
+            background: white;
+            border-top: 1px solid #e8e8e8;
+        }
+
+        .input-container {
+            position: relative;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .message-input {
+            width: 100%;
+            padding: 16px 52px 16px 16px;
+            border: 1px solid #e8e8e8;
+            border-radius: 12px;
+            font-size: 15px;
+            font-family: inherit;
+            resize: none;
+            outline: none;
+            transition: border-color 0.2s ease;
+            min-height: 52px;
+            max-height: 120px;
+            background: #fafafa;
+        }
+
+        .message-input:focus {
+            border-color: #1a1a1a;
+            background: white;
+        }
+
+        .send-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #1a1a1a;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            background: #333333;
+        }
+
+        .send-btn:disabled {
+            background: #e8e8e8;
+            color: #999999;
+            cursor: not-allowed;
+        }
+
+        /* Typing indicator */
+        .typing-indicator {
+            padding: 32px;
+            background: #ffffff;
+            border-top: 1px solid #e8e8e8;
+            border-bottom: 1px solid #e8e8e8;
+            display: none;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .typing-content {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .typing-text {
+            color: #666666;
+            font-size: 14px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dots span {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #cccccc;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 80%, 100% {
+                opacity: 0.3;
+                transform: scale(0.8);
+            }
+            40% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* Welcome screen */
+        .welcome-screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 64px 32px;
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .welcome-title {
+            font-size: 32px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #333333;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s ease;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid #e8e8e8;
+            }
+            
+            .sidebar-header {
+                padding: 16px 24px;
+            }
+            
+            .chat-history {
+                display: none;
+            }
+            
+            .sidebar-footer {
+                display: none;
+            }
+            
+            .main-chat {
+                height: calc(100vh - 80px);
+            }
+
+            .message {
+                padding: 20px 16px;
+            }
+
+            .input-area {
+                padding: 16px 20px;
+            }
+        }
+
+        /* Scrollbar styling */
+        .messages-container::-webkit-scrollbar,
+        .chat-history::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .messages-container::-webkit-scrollbar-track,
+        .chat-history::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb,
+        .chat-history::-webkit-scrollbar-thumb {
+            background: #e8e8e8;
+            border-radius: 3px;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb:hover,
+        .chat-history::-webkit-scrollbar-thumb:hover {
+            background: #cccccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">Ethicallogix.ai</div>
+                <button class="new-chat-btn" onclick="newChat()">
+                    New Chat
+                </button>
+            </div>
+            
+            <div class="chat-history" id="chatHistory">
+                <!-- Chat history will be populated here -->
+                <div class="empty-history" id="emptyHistory">
+                    No conversations yet
+                </div>
+            </div>
+            
+            <div class="sidebar-footer">
+                <div>AI Assistant v2.0</div>
+            </div>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="main-chat">
+            <div class="chat-header">
+                <h2>Chat</h2>
+            </div>
+            
+            <div class="messages-container" id="messagesContainer">
+                <!-- Welcome Screen -->
+                <div class="welcome-screen" id="welcomeScreen">
+                    <h1 class="welcome-title">Welcome to Ethicallogix.ai</h1>
+                </div>
+            </div>
+            
+            <!-- Typing Indicator -->
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="typing-content">
+                    <div class="message-avatar ai-avatar">AI</div>
+                    <div class="typing-text">Thinking</div>
+                    <div class="typing-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Input Area -->
+            <div class="input-area">
+                <div class="input-container">
+                    <textarea 
+                        class="message-input" 
+                        id="messageInput" 
+                        placeholder="Type your message..."
+                        rows="1"
+                    ></textarea>
+                    <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                        ↑
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let isFirstMessage = true;
+        let currentSessionId = null;
+        
+        // Auto-resize textarea
+        const messageInput = document.getElementById('messageInput');
+        messageInput.addEventListener('input', function() {
+            this.style.height = '52px';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+
+        // Handle Enter key
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Format text content to preserve formatting
+        function formatTextContent(text) {
+            if (!text) return text;
+            
+            // Convert markdown-style formatting to HTML
+            text = text
+                // Handle bold text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/__(.*?)__/g, '<strong>$1</strong>')
+                
+                // Handle italic text
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/_(.*?)_/g, '<em>$1</em>')
+                
+                // Handle inline code
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                
+                // Handle headers
+                .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+                .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+                .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+                
+                // Handle lists
+                .replace(/^\* (.*$)/gm, '<li>$1</li>')
+                .replace(/^- (.*$)/gm, '<li>$1</li>')
+                .replace(/^\d+\. (.*$)/gm, '<li>$1</li>')
+                
+                // Handle line breaks (preserve double line breaks as paragraphs)
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>');
+            
+            // Wrap in paragraphs and handle lists
+            let formattedText = text;
+            
+            // Wrap list items in ul tags
+            formattedText = formattedText.replace(/(<li>.*?<\/li>)(\s*<br>\s*<li>.*?<\/li>)*/g, function(match) {
+                return '<ul>' + match.replace(/<br>\s*/g, '') + '</ul>';
+            });
+            
+            // Wrap content in paragraphs if not already wrapped
+            if (!formattedText.startsWith('<') && formattedText.length > 0) {
+                formattedText = '<p>' + formattedText + '</p>';
+            }
+            
+            return formattedText;
+        }
+
+        // Copy text to clipboard
+        async function copyToClipboard(text, button) {
+            try {
+                // Strip HTML tags for plain text copy
+                const plainText = text.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+                
+                await navigator.clipboard.writeText(plainText);
+                
+                // Update button to show success
+                const originalText = button.innerHTML;
+                button.innerHTML = `
+                    <svg class="copy-icon" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+                    </svg>
+                    Copied!
+                `;
+                button.classList.add('copied');
+                
+                // Show toast notification
+                showToast('Text copied to clipboard!');
+                
+                // Reset button after 2 seconds
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+                
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+                showToast('Failed to copy text', 'error');
+            }
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast show ${type}`;
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Send message function
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // Hide welcome screen on first message
+            if (isFirstMessage) {
+                document.getElementById('welcomeScreen').style.display = 'none';
+                isFirstMessage = false;
+            }
+
+            // Add user message to chat
+            addMessage('user', message);
+            
+            // Clear input
+            messageInput.value = '';
+            messageInput.style.height = '52px';
+            
+            // Show typing indicator
+            showTypingIndicator();
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Add AI response to chat
+                    addMessage('ai', data.response, data.timestamp);
+                    // Refresh chat history sidebar
+                    loadChatHistory();
+                } else {
+                    addMessage('ai', `Error: ${data.error}`, new Date().toLocaleTimeString());
+                }
+            } catch (error) {
+                addMessage('ai', `Network error: ${error.message}`, new Date().toLocaleTimeString());
+            } finally {
+                hideTypingIndicator();
+            }
+        }
+
+        // Add message to chat
+        function addMessage(role, content, timestamp = null) {
+            const messagesContainer = document.getElementById('messagesContainer');
+            const messageDiv = document.createElement('div');
+            
+            if (!timestamp) {
+                timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            }
+            
+            // Format the content based on role
+            let formattedContent;
+            if (role === 'ai') {
+                formattedContent = formatTextContent(content);
+            } else {
+                formattedContent = content.replace(/\n/g, '<br>');
+            }
+            
+            messageDiv.className = `message ${role}-message`;
+            messageDiv.innerHTML = `
+                <div class="message-avatar ${role}-avatar">
+                    ${role === 'user' ? 'You' : 'HASI'}
+                </div>
+                <div class="message-content">
+                    <div class="message-text">${formattedContent}</div>
+                    <div class="message-actions">
+                        <button class="action-btn" onclick="copyToClipboard(this)">
+                            <svg class="copy-icon" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                                <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                            </svg>
+                            Copy
+                        </button>
+                    </div>
+                    <div class="message-time">${timestamp}</div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Show typing indicator
+        function showTypingIndicator() {
+            document.getElementById('typingIndicator').style.display = 'block';
+            document.getElementById('messagesContainer').scrollTop = document.getElementById('messagesContainer').scrollHeight;
+        }
+
+        // Hide typing indicator
+        function hideTypingIndicator() {
+            document.getElementById('typingIndicator').style.display = 'none';
+        }
+
+        // Load chat history in sidebar
+        async function loadChatHistory() {
+            try {
+                const response = await fetch('/api/sessions');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    renderChatHistory(data.sessions);
+                }
+            } catch (error) {
+                console.error('Error loading chat history:', error);
+            }
+        }
+
+        // Render chat history in sidebar
+        function renderChatHistory(sessions) {
+            const chatHistory = document.getElementById('chatHistory');
+            const emptyHistory = document.getElementById('emptyHistory');
+            
+            if (!sessions || sessions.length === 0) {
+                emptyHistory.style.display = 'block';
+                return;
+            }
+            
+            emptyHistory.style.display = 'none';
+            
+            let historyHTML = '';
+            
+            // Group sessions by time periods
+            const now = new Date();
+            const today = [];
+            const yesterday = [];
+            const thisWeek = [];
+            const older = [];
+            
+            sessions.forEach(session => {
+                if (!session.messages || session.messages.length === 0) return;
+                
+                const sessionDate = new Date(session.start_time);
+                const diffTime = Math.abs(now - sessionDate);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (diffDays === 1 || sessionDate.toDateString() === now.toDateString()) {
+                    today.push(session);
+                } else if (diffDays === 2) {
+                    yesterday.push(session);
+                } else if (diffDays <= 7) {
+                    thisWeek.push(session);
+                } else {
+                    older.push(session);
+                }
+            });
+            
+            // Render sections
+            if (today.length > 0) {
+                historyHTML += '<div class="history-section">';
+                historyHTML += '<div class="history-title">Today</div>';
+                today.forEach(session => {
+                    historyHTML += renderSessionItem(session);
+                });
+                historyHTML += '</div>';
+            }
+            
+            if (yesterday.length > 0) {
+                historyHTML += '<div class="history-section">';
+                historyHTML += '<div class="history-title">Yesterday</div>';
+                yesterday.forEach(session => {
+                    historyHTML += renderSessionItem(session);
+                });
+                historyHTML += '</div>';
+            }
+            
+            if (thisWeek.length > 0) {
+                historyHTML += '<div class="history-section">';
+                historyHTML += '<div class="history-title">This Week</div>';
+                thisWeek.forEach(session => {
+                    historyHTML += renderSessionItem(session);
+                });
+                historyHTML += '</div>';
+            }
+            
+            if (older.length > 0) {
+                historyHTML += '<div class="history-section">';
+                historyHTML += '<div class="history-title">Older</div>';
+                older.forEach(session => {
+                    historyHTML += renderSessionItem(session);
+                });
+                historyHTML += '</div>';
+            }
+            
+            chatHistory.innerHTML = historyHTML;
+            
+            // Add click listeners
+            document.querySelectorAll('.history-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const sessionId = item.dataset.sessionId;
+                    loadSession(parseInt(sessionId));
+                });
+            });
+        }
+        
+        // Render individual session item
+        function renderSessionItem(session) {
+            const sessionDate = new Date(session.start_time);
+            const timeStr = sessionDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const currentClass = session.is_current ? ' current' : '';
+            
+            return `
+                <div class="history-item${currentClass}" data-session-id="${session.id}">
+                    <div>${session.title || 'New Chat'}</div>
+                    <div class="session-time">${timeStr}</div>
+                </div>
+            `;
+        }
+        
+        // Load a specific session
+        async function loadSession(sessionId) {
+            try {
+                const response = await fetch('/api/load-session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ session_id: sessionId })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Clear current messages
+                    const messagesContainer = document.getElementById('messagesContainer');
+                    messagesContainer.innerHTML = '';
+                    
+                    // Hide welcome screen
+                    isFirstMessage = false;
+                    currentSessionId = sessionId;
+                    
+                    // Load messages
+                    if (data.history && data.history.length > 0) {
+                        data.history.forEach(msg => {
+                            const timestamp = new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                            addMessage(msg.role === 'human' ? 'user' : 'ai', msg.content, timestamp);
+                        });
+                    } else {
+                        // Show welcome screen if no messages
+                        messagesContainer.innerHTML = `
+                            <div class="welcome-screen" id="welcomeScreen">
+                                <h1 class="welcome-title">Welcome to Ethicallogix.ai</h1>
+                            </div>
+                        `;
+                        isFirstMessage = true;
+                    }
+                    
+                    // Refresh sidebar to show current session
+                    loadChatHistory();
+                } else {
+                    console.error('Error loading session:', data.error);
+                }
+            } catch (error) {
+                console.error('Error loading session:', error);
+            }
+        }
+
+        // New chat function
+        async function newChat() {
+            try {
+                const response = await fetch('/api/new-session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (response.ok) {
+                    // Clear messages and show welcome screen
+                    const messagesContainer = document.getElementById('messagesContainer');
+                    messagesContainer.innerHTML = `
+                        <div class="welcome-screen" id="welcomeScreen">
+                            <h1 class="welcome-title">Welcome to Ethicallogix.ai</h1>
+                        </div>
+                    `;
+                    isFirstMessage = true;
+                    currentSessionId = null;
+                    
+                    // Refresh sidebar
+                    loadChatHistory();
+                }
+            } catch (error) {
+                console.error('Error starting new chat:', error);
+            }
+        }
+
+        // Load current session on page load
+        async function loadCurrentSession() {
+            try {
+                const response = await fetch('/api/history');
+                const data = await response.json();
+                
+                if (response.ok && data.history && data.history.length > 0) {
+                    document.getElementById('welcomeScreen').style.display = 'none';
+                    isFirstMessage = false;
+                    
+                    data.history.forEach(msg => {
+                        const timestamp = new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        addMessage(msg.role === 'human' ? 'user' : 'ai', msg.content, timestamp);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading current session:', error);
+            }
+        }
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing...'); // Debug log
+            
+            // Load current session first
+            loadCurrentSession();
+            
+            // Load chat history
+            setTimeout(() => {
+                loadChatHistory();
+            }, 100);
+            
+            // Focus on input
+            messageInput.focus();
+        });
+    </script>
+</body>
+</html>
