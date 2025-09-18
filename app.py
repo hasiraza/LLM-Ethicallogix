@@ -19,6 +19,10 @@ except ImportError:
     BS4_AVAILABLE = False
 
 load_dotenv()
+google_api_key = os.getenv("GOOGLE_API_KEY")
+
+if not google_api_key:
+    raise ValueError("GOOGLE_API_KEY is missing! Please set it in Railway variables.")
 
 class VideoSearcher:
     """Handles video search functionality"""
